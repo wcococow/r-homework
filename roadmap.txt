@@ -1,0 +1,22 @@
+principle
+1.systematic when organize filesys minimize time spent looking for sth
+2.automize when possible repeat work
+3.minimize use mouse figure leaves
+
+unix file version control git github facilitate collabrations write reports in r marddown knitr package reports
+
+installed.packages()
+git config to tell git who we are
+git config --global user.name "wcococow"
+git config --global user.mail "wcococow@gmail.com
+
+git hub repo master copy
+1.init  create repo https://github.com/wcococow/r-homework.git
+2.git clone https://github.com/wcococow/r-homework.git from server
+
+local                                                               remote
+working directory   staging area        local repository                     upstream repo 
+
+             <---------------------------------------------------------------- pull changes from the remote repo 
+          add files  ->          commit ->          push to remote ------------->
+										 
