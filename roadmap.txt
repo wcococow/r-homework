@@ -29,12 +29,7 @@ unix command
 ls,mkdir,rmdir,rm,pwd			cd - cd../.. cd home	 
 mv murders.csv to murder.csv
 
-github
-git init
-git
-git commit
-git remote add orgin https://github.com/wcococow/r-homework.git
-git push
+
 
 mv ~/r-learning ~/c:/
 cp
@@ -52,3 +47,13 @@ echo "test" >> new.txt
 staging can be skipped direct git commit -m 'ss' git log
 
 git fetch for more than one people
+
+5.github
+git init
+git
+git commit
+git remote add orgin https://github.com/wcococow/r-homework.git
+git push
+
+6.unix
+rm -r dic name -rf force ls -all -t -r ls -lart | less
