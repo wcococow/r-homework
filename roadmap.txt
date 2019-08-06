@@ -18,5 +18,34 @@ local                                                               remote
 working directory   staging area        local repository                     upstream repo 
 
              <---------------------------------------------------------------- pull changes from the remote repo 
+                                       <-------------------                    fetch
+<-------------------------------------merge
           add files  ->          commit ->          push to remote ------------->
-										 
+
+.gitignore file					 add suffix we do not want to track
+https://git.scm.com/docs.gitignore	
+
+unix command
+ls,mkdir,rmdir,rm,pwd			cd - cd../.. cd home	 
+mv murders.csv to murder.csv
+
+github
+git init
+git remote add orgin
+
+mv ~/r-learning ~/c:/
+cp
+rm remove file
+less look file  q
+mkdir rda data
+
+3.markdown file and knitr knit
+install.packages("knitr")
+
+4.git github
+
+echo "test" >> new.txt
+
+staging can be skipped direct git commit -m 'ss' git log
+
+git fetch for more than one people
