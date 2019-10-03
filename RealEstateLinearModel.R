@@ -6,11 +6,12 @@ library(car)
 setwd("D:/edvancer/R project/Real Estate")
 data.train <- read.csv("housing_train.csv", stringsAsFactors = F)
 data.test <- read.csv("housing_test.csv", stringsAsFactors = F)
-View(data.test)
 data.test$Price <- NA
 data.train$data  <- 'train'
 data.test$data <- 'test'
 data <- rbind(data.train,data.test)
+
+
 
 data <- data %>%
   mutate(Bedroom2 = ifelse(is.na(Bedroom2),Rooms,Bedroom2))
@@ -104,7 +105,7 @@ table(data$Bathroom)
 table(data$Bedroom2)
 
 sum(data$CouncilArea == "Other")
-nrow(table(data$CouncilArea))
+nrow(table(data.train$CouncilArea))
 
 
 
@@ -152,3 +153,26 @@ CreateDummies=function(data,var,freq_cutoff=0){
   data[,var]=NULL
   return(data)
 }
+
+
+############
+sum(is.na(data.train$YearBuilt))
+h <- data.train %>% filter(Type=='h') %>% select(Price) %>% unlist
+
+
+t <- data.train %>% filter(Type=='t') %>% select(Price) %>% unlist
+
+mean(h) - mean(t)
+
+data.train %>% select(Postcode) %>% unique %>% nrow
+data.train$CouncilArea <- replace(data.train$CouncilArea,data.train$CouncilArea=="","Other")
+data.train %>% group_by(CouncilArea) %>% summarise(PriceAvg=mean(Price)) %>% arrange(desc(PriceAvg))
+
+
+
+hist(data.train$Distance)
+
+data.train %>% group_by(SellerG) %>% summarise(PriceTotal=sum(Price)) %>% arrange(desc(PriceTotal))
+data.train %>% group_by(CouncilArea) %>% summarise(PriceVar=var(Price)) %>% arrange(desc(PriceVar))
+
+
