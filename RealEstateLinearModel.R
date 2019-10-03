@@ -93,7 +93,7 @@ fit=lm(Price~.,data=data_train1)
 summary(fit)
 sort(vif(fit),decreasing = T)[1:3]
 fit=lm(Price~.-Method_S-CouncilArea_Other-Rooms-Postcodes-Postcode_3039-CouncilArea_GlenEira-Postcode_3084-Postcode_3084-CouncilArea_PortPhillip-Postcode_3182-CouncilArea_Darebin-CouncilArea_Manningham-Postcode_3042,data=data_train)
-fit=lm(Price~.-Method_S-CouncilArea_Other-Rooms-Postcodes-CouncilArea_GlenEira-Postcode_3039-Postcode_3084-Postcode_3013-Postcode_3182-Postcode_3070-Postcode_3042-CouncilArea_Monash-Postcode_3122-CouncilArea_Manningham-Postcode_3012-CouncilArea_Bayside-Postcode_3011-CouncilArea_Darebin-Postcode_3044-Postcode_3079-CouncilArea_Banyule,data=data_train1)
+fit=lm(Price~.-Method_S-CouncilArea_Other-Rooms-CouncilArea_GlenEira-Postcode_3039-Postcode_3084-Postcode_3013-Postcode_3182-Postcode_3070-Postcode_3042-CouncilArea_Monash-Postcode_3122-CouncilArea_Manningham-Postcode_3012-CouncilArea_Bayside-Postcode_3011-CouncilArea_Darebin-Postcode_3044-Postcode_3079-CouncilArea_Banyule,data=data_train1)
 
 
 
@@ -104,6 +104,14 @@ plot(fit,which=3)
 plot(fit,which=4)
 
 predicted=predict(fit,newdata=data_train2)
+
+RMSE=(predicted-data_train2$Price)**2 %>%
+  mean() %>%
+  sqrt()
+RMSE
+212467/RMSE
+
+predicted=predict(fit,newdata=data_test)
 write.csv(predicted,'proper_name.csv',row.names = F)
 
 data %>% select(which(is.na(data)))
