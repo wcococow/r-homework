@@ -42,6 +42,41 @@ data$CouncilArea <- replace(data$CouncilArea,data$CouncilArea=="","Other")
 
 data <- CreateDummies(data ,"CouncilArea",19)
 
+data <- data %>%
+  mutate(Landsize = ifelse(is.na(Landsize),0,Landsize))
+
+
+year <- data %>% select(Postcodes,YearBuilt) %>% group_by(Postcodes)
+year <- as.data.frame(table(year),stringsAsFactors = F) %>% arrange(desc(Freq)) %>% filter(Freq > 0)
+year <- year  %>% mutate(YearBuilt = as.numeric(YearBuilt))
+str(year$Postcodes)
+View(year)
+
+
+
+for(i in 1:length(data$YearBuilt)){
+  if(is.na(data[i,"YearBuilt"])==T){
+    data[i,"YearBuilt"] <- year[which(year$Postcodes==data[i,"Postcodes"]),"YearBuilt"][1]
+  }
+}
+
+
+
+
+for(i in 1:2){
+  if(is.na(s[i,"year"])==T){
+    s[i,"year"] <- y[which(y$post==s[1,"post"]),"year"][1]
+  }
+}
+
+
+
+
+
+
+
+
+
 
 glimpse(data)
 View(data)
@@ -59,17 +94,15 @@ nrow(table(data$CouncilArea))
 
 
 
-
-
-x <- data %>% select(Rooms,Bathroom) %>% group_by(Rooms,Bathroom)
-x <- as.data.frame(table(x)) %>% arrange(Freq)
+x <- data %>% select(Postcodes,YearBuilt) %>% group_by(Postcodes)
+x <- as.data.frame(table(x)) %>% arrange(Freq) %>% filter(Freq > 0)
 sum(is.na(data$BuildingArea))
 sum(is.na(data$YearBuilt))
 sum(is.na(data$BuildingArea))
 nrow(data)
 
 x <- data %>% select(Rooms,Car) %>% group_by(Rooms,Car)
-x <- as.data.frame(table(x)) %>% arrange(Freq)
+x <- as.data.frame(table(x)) %>% arrange(Freq) %>% filter(Freq > 0)
 View(x)
 
 x <- data %>% select(Rooms,Landsize) %>% group_by(Rooms,Landsize)
@@ -80,7 +113,7 @@ View(x)
 
 table(data$Type)
 table(data$Method)
-
+x <- as.data.frame(table(data$YearBuilt)) %>% arrange(desc(F))
 
 
 
