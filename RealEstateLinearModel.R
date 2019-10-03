@@ -3,153 +3,104 @@ library(tidyverse)
 library(car)
 #read csv file
 setwd("D:/edvancer/R project/Real Estate")
-data <- read.csv("OnlineNewsPopularity.csv", stringsAsFactors = F)
+data.train <- read.csv("housing_train.csv", stringsAsFactors = F)
+data.test <- read.csv("housing_test.csv", stringsAsFactors = F)
+
+data.test$Price <- NA
+data.train$data  <- 'train'
+data.test$data <- 'test'
+data <- rbind(data.train,data.test)
+
+data <- data %>%
+  mutate(Bedroom2 = ifelse(is.na(Bedroom2),Rooms,Bedroom2))
+
+
+data <- data %>% mutate(Bathroom=ifelse(is.na(Bathroom) & Rooms==1,1,Bathroom))
+data <- data %>% mutate(Bathroom=ifelse(is.na(Bathroom) & Rooms==2,1,Bathroom))
+data <- data %>% mutate(Bathroom=ifelse(is.na(Bathroom) & Rooms==3,1,Bathroom))
+data <- data %>% mutate(Bathroom=ifelse(is.na(Bathroom) & Rooms==4,2,Bathroom))
+data <- data %>% mutate(Bathroom=ifelse(is.na(Bathroom) & Rooms==5,3,Bathroom))
+
+
+data <- data %>% mutate(Car=ifelse(is.na(Car) & Rooms==1,1,Car))
+data <- data %>% mutate(Car=ifelse(is.na(Car) & Rooms==2,1,Car))
+data <- data %>% mutate(Car=ifelse(is.na(Car) & Rooms==3,2,Car))
+data <- data %>% mutate(Car=ifelse(is.na(Car) & Rooms==4,2,Car))
+data <- data %>% mutate(Car=ifelse(is.na(Car) & Rooms==5,2,Car))
+
+data <- data %>% select(-BuildingArea)
+data <- data %>%
+  mutate(Postcodes = as.numeric(Postcode)
+  ) %>%
+  select(-Suburb,-Address)
+
+data <- CreateDummies(data ,"Postcode",93)
+data <- CreateDummies(data ,"Type",2)
+data <- CreateDummies(data ,"Method",4)
+
+data$CouncilArea <- replace(data$CouncilArea,data$CouncilArea=="","Other")
+
+data <- CreateDummies(data ,"CouncilArea",19)
+
+
 glimpse(data)
-sum(is.na(data))
+View(data)
+
 #convert categorical to numeric data
-table(data$weekday)
-data <- data %>%
-  mutate(wd.friday = as.numeric(weekday == "Friday"),
-         wd.monday = as.numeric(weekday == "Monday"),
-         wd.sunday = as.numeric(weekday == "Sunday"),
-         wd.thursday = as.numeric(weekday == "Thursday"),
-         wd.tuesday = as.numeric(weekday == "Tuesday"),
-         wd.wednesday = as.numeric(weekday == "Wednesday")
-  ) %>%
-  select(-weekday)
+postcode <- table(data$Postcode)
+nrow(postcode)
 
-table(data$data_channel)
-data <- data %>%
-  mutate(
-    dc.bus = as.numeric(data_channel=="business"),
-    dc.ent=as.numeric(data_channel=="entertainment"),
-    dc.life=as.numeric(data_channel=="lifestyle"),
-    dc.socmed=as.numeric(data_channel=="socmed"),
-    dc.tech=as.numeric(data_channel=="tech"),
-    dc_world=as.numeric(data_channel=="world")
-  ) %>%
-  select(-data_channel)
+table(data$Bathroom)
+table(data$Bedroom2)
 
-words<-c("google","twitter","facebook","apple",
-         "video","new","app","iphone","social","world","2014")
-for(word in words){
-  data[,paste0("word_",word)]=NA
-  for(i in 1:nrow(data)){
-    data[,paste0("word_",word)][i]=as.numeric(length(grep(word,data$url[i]))>0)
+sum(data$CouncilArea == "Other")
+nrow(table(data$CouncilArea))
+
+
+
+
+
+
+x <- data %>% select(Rooms,Bathroom) %>% group_by(Rooms,Bathroom)
+x <- as.data.frame(table(x)) %>% arrange(Freq)
+sum(is.na(data$BuildingArea))
+sum(is.na(data$YearBuilt))
+sum(is.na(data$BuildingArea))
+nrow(data)
+
+x <- data %>% select(Rooms,Car) %>% group_by(Rooms,Car)
+x <- as.data.frame(table(x)) %>% arrange(Freq)
+View(x)
+
+x <- data %>% select(Rooms,Landsize) %>% group_by(Rooms,Landsize)
+x <- as.data.frame(table(x)) %>% arrange(Freq)
+View(x)
+
+
+
+table(data$Type)
+table(data$Method)
+
+
+
+
+CreateDummies=function(data,var,freq_cutoff=0){
+  t=table(data[,var])
+  t=t[t>freq_cutoff]
+  t=sort(t)
+  categories=names(t)[-1]
+  
+  for( cat in categories){
+    name=paste(var,cat,sep="_")
+    name=gsub(" ","",name)
+    name=gsub("-","_",name)
+    name=gsub("\\?","Q",name)
+    name=gsub("<","LT_",name)
+    name=gsub("\\+","",name)
+    
+    data[,name]=as.numeric(data[,var]==cat)
   }
+  
+  data[,var]=NULL
+  return(data)
 }
-data=data[,-1]
-
-#build model
-set.seed(2)
-s <- sample(1:nrow(data), 0.8*nrow(data))
-data_train <- data[s,]
-data_test <- data[-s,]
-fit <- lm(shares~. , data=data_train)
-sort(vif(fit), decreasing = T)
-#drop High VIF till VIF < 5
-fit<-lm(shares~.-LDA_03,data=data_train)
-sort(vif(fit),decreasing = T)[1:10]
-fit<-lm(shares~.-LDA_03-n_unique_tokens,data=data_train)
-sort(vif(fit),decreasing = T)[1:10]
-fit<-lm(shares~.-LDA_03-n_unique_tokens-n_non_stop_words,data=data_train)
-sort(vif(fit),decreasing = T)[1:10]
-fit<-lm(shares~.-LDA_03-n_unique_tokens-n_non_stop_words-self_reference_avg_sharess-rate_positive_words,data=data_train)
-sort(vif(fit),decreasing = T)[1:10]
-fit<-lm(shares~.-LDA_03-n_unique_tokens-n_non_stop_words-self_reference_avg_sharess-rate_positive_words-kw_avg_min,data=data_train)
-sort(vif(fit),decreasing = T)[1:10]
-fit<-lm(shares~.-LDA_03-n_unique_tokens-n_non_stop_words-self_reference_avg_sharess-rate_positive_words-kw_avg_min-kw_avg_avg,data=data_train)
-sort(vif(fit),decreasing = T)[1:10]
-fit<-lm(shares~.-LDA_03-n_unique_tokens-n_non_stop_words-self_reference_avg_sharess-rate_positive_words-kw_avg_min-kw_avg_avg-rate_negative_words,data=data_train)
-sort(vif(fit),decreasing = T)[1:10]
-fit<-lm(shares~.-LDA_03-n_unique_tokens-n_non_stop_words-self_reference_avg_sharess-rate_positive_words-kw_avg_min-kw_avg_avg-rate_negative_words-avg_negative_polarity,data=data_train)
-sort(vif(fit),decreasing = T)[1:10]
-fit<-lm(shares~.-LDA_03-n_unique_tokens-n_non_stop_words-self_reference_avg_sharess-rate_positive_words-kw_avg_min-kw_avg_avg-rate_negative_words-avg_negative_polarity-dc_world,data=data_train)
-sort(vif(fit),decreasing = T)[1:10]
-fit<-lm(shares~.-LDA_03-n_unique_tokens-n_non_stop_words-self_reference_avg_sharess-rate_positive_words-kw_avg_min-kw_avg_avg-rate_negative_words-avg_negative_polarity-dc_world-global_sentiment_polarity,data=data_train)
-sort(vif(fit),decreasing = T)[1:10]
-
-data_train <-data_train %>%
-  select(-LDA_03,
-         -n_unique_tokens,
-         -n_non_stop_words,
-         -self_reference_avg_sharess,
-         -rate_positive_words,
-         -kw_avg_min,
-         -kw_avg_avg,
-         -rate_negative_words,
-         -avg_negative_polarity,
-         -dc_world,
-         -global_sentiment_polarity)
-
-fit<-lm(shares~.,data=data_train)
-summary(fit)
-
-#check AIC value
-fit<-step(fit)
-
-summary(fit)
-#drop p value > 0.1
-
-fit <- lm(formula = shares ~ n_tokens_title + num_keywords + kw_min_min + 
-            kw_min_avg + kw_max_avg + self_reference_min_shares + LDA_02 + 
-            LDA_04 + global_subjectivity + global_rate_positive_words + 
-            min_positive_polarity + max_negative_polarity + abs_title_subjectivity + 
-            nnsw_share + ntt_share + mnp_share + nv_shares + minnp_shares + 
-            nsh_shares + num_im_shares + num_hrefs_shares + sp_feat1 + 
-            wd.thursday + dc.ent + word_facebook + word_apple + word_app + 
-            word_iphone + word_2014, data = data_train)
-
-
-fit <- lm(formula = shares ~ num_keywords + kw_min_min + 
-            kw_min_avg + kw_max_avg + self_reference_min_shares + LDA_02 + 
-            LDA_04 + global_subjectivity + global_rate_positive_words + 
-            min_positive_polarity + max_negative_polarity + abs_title_subjectivity + 
-            nnsw_share + ntt_share + mnp_share + nv_shares + minnp_shares + 
-            nsh_shares + num_im_shares + num_hrefs_shares + sp_feat1 + 
-            wd.thursday + dc.ent + word_facebook + word_apple + word_app + 
-            word_iphone + word_2014, data = data_train)
-
-fit <- lm(formula = shares ~ num_keywords + kw_min_min + 
-            kw_min_avg + kw_max_avg + self_reference_min_shares + LDA_02 + 
-            LDA_04 + global_subjectivity + global_rate_positive_words + 
-            min_positive_polarity  + abs_title_subjectivity + 
-            nnsw_share + ntt_share + mnp_share + nv_shares + minnp_shares + 
-            nsh_shares + num_im_shares + num_hrefs_shares + sp_feat1 + 
-            wd.thursday + dc.ent + word_facebook + word_apple + word_app + 
-            word_iphone + word_2014, data = data_train)
-
-fit <- lm(formula = shares ~ num_keywords + kw_min_min + 
-            kw_min_avg + kw_max_avg + self_reference_min_shares + LDA_02 + 
-            LDA_04 + global_subjectivity + global_rate_positive_words + 
-            min_positive_polarity  + abs_title_subjectivity + 
-            nnsw_share + ntt_share + mnp_share + nv_shares + minnp_shares + 
-            nsh_shares + num_im_shares + num_hrefs_shares + sp_feat1 + 
-            wd.thursday + dc.ent  + word_apple + word_app + 
-            word_iphone + word_2014, data = data_train)
-
-fit <- lm(formula = shares ~ num_keywords  + 
-            kw_min_avg + kw_max_avg + self_reference_min_shares + LDA_02 + 
-            LDA_04 + global_subjectivity + global_rate_positive_words + 
-            min_positive_polarity  + abs_title_subjectivity + 
-            nnsw_share + ntt_share + mnp_share + nv_shares  + 
-            nsh_shares + num_im_shares + num_hrefs_shares + sp_feat1 + 
-            wd.thursday + dc.ent  + word_apple  , data = data_train)
-
-
-plot(fit, which=1)
-plot(fit,which=2)
-hist(fit$residuals,breaks=1000)
-plot(fit,which=3)
-plot(fit,which=4)
-nrow(data_train)
-View(data_train)
-x <- data_train[rownames(data_train) %in% c(23136,26577),]
-
-data_train <- anti_join(data_train,x)
-
-predicted=predict(fit,newdata=data_test)
-RMSE=(predicted-data_test$shares)**2 %>%
-  mean() %>%
-  sqrt()
-Score =212467/RMSE 
