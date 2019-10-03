@@ -1,11 +1,12 @@
 library(dplyr)
 library(tidyverse)
+library(tidyr)
 library(car)
 #read csv file
 setwd("D:/edvancer/R project/Real Estate")
 data.train <- read.csv("housing_train.csv", stringsAsFactors = F)
 data.test <- read.csv("housing_test.csv", stringsAsFactors = F)
-
+View(data.test)
 data.test$Price <- NA
 data.train$data  <- 'train'
 data.test$data <- 'test'
@@ -30,7 +31,8 @@ data <- data %>% mutate(Car=ifelse(is.na(Car) & Rooms==5,2,Car))
 
 data <- data %>% select(-BuildingArea)
 data <- data %>%
-  mutate(Postcodes = as.numeric(Postcode)
+  mutate(Postcodes = as.numeric(Postcode),
+         YearBuilt = as.numeric(YearBuilt)
   ) %>%
   select(-Suburb,-Address)
 
@@ -48,10 +50,6 @@ data <- data %>%
 
 year <- data %>% select(Postcodes,YearBuilt) %>% group_by(Postcodes)
 year <- as.data.frame(table(year),stringsAsFactors = F) %>% arrange(desc(Freq)) %>% filter(Freq > 0)
-year <- year  %>% mutate(YearBuilt = as.numeric(YearBuilt))
-str(year$Postcodes)
-View(year)
-
 
 
 for(i in 1:length(data$YearBuilt)){
@@ -60,22 +58,39 @@ for(i in 1:length(data$YearBuilt)){
   }
 }
 
+data <- data %>%
+  mutate(YearBuilt = as.numeric(YearBuilt)
+  )
+
+
+data <- data %>%
+  select(-SellerG)
+
+nrow(data_test)
+
+data %>% drop_na()
+
+
+data_train=data %>% filter(data=='train') %>% select(-data)
+data_test=data %>% filter(data=='test') %>% select(-data,-Price)
+
+vif=lm(Price~.,data=data_train)
+summary(vif)
+sort(vif(vif),decreasing = T)[1:3]
+vif=lm(Price~.-Method_S-CouncilArea_Other-Rooms-Postcodes-Postcode_3039-CouncilArea_GlenEira-Postcode_3084-Postcode_3084-CouncilArea_PortPhillip-Postcode_3182-CouncilArea_Darebin-CouncilArea_Manningham-Postcode_3042,data=data_train)
 
 
 
-for(i in 1:2){
-  if(is.na(s[i,"year"])==T){
-    s[i,"year"] <- y[which(y$post==s[1,"post"]),"year"][1]
-  }
-}
+vif=step(vif)
+plot(vif,which=1)
+plot(vif,which=2)
+plot(vif,which=3)
+plot(vif,which=4)
 
+predicted=predict(vif,newdata=data_test)
+write.csv(predicted,'proper_name.csv',row.names = F)
 
-
-
-
-
-
-
+data %>% select(which(is.na(data)))
 
 
 glimpse(data)
@@ -98,7 +113,7 @@ x <- data %>% select(Postcodes,YearBuilt) %>% group_by(Postcodes)
 x <- as.data.frame(table(x)) %>% arrange(Freq) %>% filter(Freq > 0)
 sum(is.na(data$BuildingArea))
 sum(is.na(data$YearBuilt))
-sum(is.na(data$BuildingArea))
+sum(is.na(data$Rooms))
 nrow(data)
 
 x <- data %>% select(Rooms,Car) %>% group_by(Rooms,Car)
