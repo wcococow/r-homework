@@ -67,28 +67,43 @@ data <- data %>%
 data <- data %>%
   select(-SellerG)
 
-nrow(data_test)
-
-data %>% drop_na()
+for(col in names(data)){
+  
+  if(sum(is.na(data[,col]))>0 & !(col %in% c("data","Price"))){
+    
+    data[is.na(data[,col]),col]=mean(data[data$data=='train',col],na.rm=T)
+  }
+  
+}
 
 
 data_train=data %>% filter(data=='train') %>% select(-data)
 data_test=data %>% filter(data=='test') %>% select(-data,-Price)
 
-vif=lm(Price~.,data=data_train)
-summary(vif)
-sort(vif(vif),decreasing = T)[1:3]
-vif=lm(Price~.-Method_S-CouncilArea_Other-Rooms-Postcodes-Postcode_3039-CouncilArea_GlenEira-Postcode_3084-Postcode_3084-CouncilArea_PortPhillip-Postcode_3182-CouncilArea_Darebin-CouncilArea_Manningham-Postcode_3042,data=data_train)
+
+any(is.na(data_train))
+any(is.na(data_test))
+
+set.seed(2)
+s=sample(1:nrow(data_train),0.7*nrow(data_train))
+data_train1=data_train[s,]
+data_train2=data_train[-s,]
+
+fit=lm(Price~.,data=data_train1)
+summary(fit)
+sort(vif(fit),decreasing = T)[1:3]
+fit=lm(Price~.-Method_S-CouncilArea_Other-Rooms-Postcodes-Postcode_3039-CouncilArea_GlenEira-Postcode_3084-Postcode_3084-CouncilArea_PortPhillip-Postcode_3182-CouncilArea_Darebin-CouncilArea_Manningham-Postcode_3042,data=data_train)
+fit=lm(Price~.-Method_S-CouncilArea_Other-Rooms-Postcodes-CouncilArea_GlenEira-Postcode_3039-Postcode_3084-Postcode_3013-Postcode_3182-Postcode_3070-Postcode_3042-CouncilArea_Monash-Postcode_3122-CouncilArea_Manningham-Postcode_3012-CouncilArea_Bayside-Postcode_3011-CouncilArea_Darebin-Postcode_3044-Postcode_3079-CouncilArea_Banyule,data=data_train1)
 
 
 
-vif=step(vif)
-plot(vif,which=1)
-plot(vif,which=2)
-plot(vif,which=3)
-plot(vif,which=4)
+vif=step(fit)
+plot(fit,which=1)
+plot(fit,which=2)
+plot(fit,which=3)
+plot(fit,which=4)
 
-predicted=predict(vif,newdata=data_test)
+predicted=predict(fit,newdata=data_train2)
 write.csv(predicted,'proper_name.csv',row.names = F)
 
 data %>% select(which(is.na(data)))
