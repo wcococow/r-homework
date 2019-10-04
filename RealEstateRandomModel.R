@@ -5,6 +5,8 @@ library(car)
 library(mice)
 library(cvTools)
 library(randomForest)
+library(party)
+library(caret)
 #read csv file
 setwd("D:/edvancer/R project/Real Estate")
 data.train <- read.csv("housing_train.csv", stringsAsFactors = F)
@@ -133,6 +135,25 @@ for(i in 1:num_trials){
 }
 
 
+# myerror=1.870957
+best_params<- data.frame(mtry=20,
+                       ntree=200,
+                       maxnodes=50,
+                       nodesize=10)
+
+## Final model with obtained best parameters
+
+ld.rf.final <- randomForest(Price~.,
+                         mtry=best_params$mtry,
+                         ntree=best_params$ntree,
+                         maxnodes=best_params$maxnodes,
+                         nodesize=best_params$nodesize,
+                         data=data_train1)
+
+dim(data)
+fit <- cforest(Price~.,data=data_train,controls=cforest_unbiased(ntree = 200, mtry = 20))
+cforestStats(fit)
+rev(sort(varimp(fit)))
 
 
 
@@ -144,25 +165,20 @@ for(i in 1:num_trials){
 
 
 
+print(ld.rf.final)
+attributes(ld.rf.final)
+
+test.pred=predict(ld.rf.final,newdata = data_train2)
+
+RMSE=(test.pred-data_train2$Price)**2 %>%
+  mean() %>%
+  sqrt()
+RMSE
+212467/RMSE
+
+
+test.pred=predict(ld.rf.final,newdata = data_test)
+write.csv(test.pred,"mysubmission.csv",row.names = F)
 
 
 
-
-
-
-
-
-
-
-
-
-
-fit = randomForest(Price ~ ., data = trainf) 
-
-train.predictions = predict(fit, newdata = trainf)
-
-### Make predictions on test and submit 
-
-test.predictions = predict(fit, newdata = testf)
-
-write.csv(test.predictions,file = "file_name.csv", row.names = F)
