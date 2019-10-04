@@ -2,66 +2,51 @@ library(dplyr)
 library(tidyverse)
 library(tidyr)
 library(car)
+library(mice)
 #read csv file
 setwd("D:/edvancer/R project/Real Estate")
 data.train <- read.csv("housing_train.csv", stringsAsFactors = F)
 data.test <- read.csv("housing_test.csv", stringsAsFactors = F)
-data.test$Price <- NA
+data.test$Price <- 0
 data.train$data  <- 'train'
 data.test$data <- 'test'
-data <- rbind(data.train,data.test)
+dataold <- rbind(data.train,data.test)
+
+pairs(data[,c("Price","Rooms")])
+
+View(dataold)
+summary(data)
+#missing data
+
+p <- function(x){
+  sum(is.na(x))/length(x)*100
+}
 
 
+apply(data,2,p)
+md.pattern(data)
+#impute
+impute <- mice(dataold[,10:17], m = 3, seed = 123) 
 
-data <- data %>%
-  mutate(Bedroom2 = ifelse(is.na(Bedroom2),Rooms,Bedroom2))
+p2 <- complete(impute, 1)
+p1 <- dataold[,1:9]
+data <- cbind(p1,p2)
+head(data)
+md.pattern(data)
 
-
-data <- data %>% mutate(Bathroom=ifelse(is.na(Bathroom) & Rooms==1,1,Bathroom))
-data <- data %>% mutate(Bathroom=ifelse(is.na(Bathroom) & Rooms==2,1,Bathroom))
-data <- data %>% mutate(Bathroom=ifelse(is.na(Bathroom) & Rooms==3,1,Bathroom))
-data <- data %>% mutate(Bathroom=ifelse(is.na(Bathroom) & Rooms==4,2,Bathroom))
-data <- data %>% mutate(Bathroom=ifelse(is.na(Bathroom) & Rooms==5,3,Bathroom))
-
-
-data <- data %>% mutate(Car=ifelse(is.na(Car) & Rooms==1,1,Car))
-data <- data %>% mutate(Car=ifelse(is.na(Car) & Rooms==2,1,Car))
-data <- data %>% mutate(Car=ifelse(is.na(Car) & Rooms==3,2,Car))
-data <- data %>% mutate(Car=ifelse(is.na(Car) & Rooms==4,2,Car))
-data <- data %>% mutate(Car=ifelse(is.na(Car) & Rooms==5,2,Car))
-
-data <- data %>% select(-BuildingArea)
-data <- data %>%
-  mutate(Postcodes = as.numeric(Postcode),
-         YearBuilt = as.numeric(YearBuilt)
-  ) %>%
-  select(-Suburb,-Address)
+str(data)
+data <- data %>% select(-Suburb,-Address)
 
 data <- CreateDummies(data ,"Postcode",93)
 data <- CreateDummies(data ,"Type",2)
 data <- CreateDummies(data ,"Method",4)
 
 data$CouncilArea <- replace(data$CouncilArea,data$CouncilArea=="","Other")
-
 data <- CreateDummies(data ,"CouncilArea",19)
 
-data <- data %>%
-  mutate(Landsize = ifelse(is.na(Landsize),0,Landsize))
 
 
-year <- data %>% select(Postcodes,YearBuilt) %>% group_by(Postcodes)
-year <- as.data.frame(table(year),stringsAsFactors = F) %>% arrange(desc(Freq)) %>% filter(Freq > 0)
 
-
-for(i in 1:length(data$YearBuilt)){
-  if(is.na(data[i,"YearBuilt"])==T){
-    data[i,"YearBuilt"] <- year[which(year$Postcodes==data[i,"Postcodes"]),"YearBuilt"][1]
-  }
-}
-
-data <- data %>%
-  mutate(YearBuilt = as.numeric(YearBuilt)
-  )
 
 
 data <- data %>%
@@ -89,15 +74,13 @@ s=sample(1:nrow(data_train),0.7*nrow(data_train))
 data_train1=data_train[s,]
 data_train2=data_train[-s,]
 
-fit=lm(Price~.,data=data_train1)
+fitfull=lm(Price~.,data=data_train1)
 summary(fit)
 sort(vif(fit),decreasing = T)[1:3]
-fit=lm(Price~.-Method_S-CouncilArea_Other-Rooms-Postcodes-Postcode_3039-CouncilArea_GlenEira-Postcode_3084-Postcode_3084-CouncilArea_PortPhillip-Postcode_3182-CouncilArea_Darebin-CouncilArea_Manningham-Postcode_3042,data=data_train)
-fit=lm(Price~.-Method_S-CouncilArea_Other-Rooms-CouncilArea_GlenEira-Postcode_3039-Postcode_3084-Postcode_3013-Postcode_3182-Postcode_3070-Postcode_3042-CouncilArea_Monash-Postcode_3122-CouncilArea_Manningham-Postcode_3012-CouncilArea_Bayside-Postcode_3011-CouncilArea_Darebin-Postcode_3044-Postcode_3079-CouncilArea_Banyule,data=data_train1)
+fit=lm(Price~.-Method_S-CouncilArea_Other-Postcode_3039-CouncilArea_Bayside-CouncilArea_Darebin-CouncilArea_Manningham-CouncilArea_HobsonsBay-Postcode_3070-Postcode_3182-Postcode_3042-Postcode_3084-Postcode_3079-CouncilArea_Brimbank-CouncilArea_Banyule-Postcode_3122-Postcode_3068-Postcode_3121,data=data_train1)
 
 
-
-vif=step(fit)
+fit=step(fit)
 plot(fit,which=1)
 plot(fit,which=2)
 plot(fit,which=3)
@@ -111,8 +94,9 @@ RMSE=(predicted-data_train2$Price)**2 %>%
 RMSE
 212467/RMSE
 
+anova(fit,fitfull)
 predicted=predict(fit,newdata=data_test)
-write.csv(predicted,'proper_name.csv',row.names = F)
+write.csv(predicted,'dong_xiaoyuan.csv',row.names = F)
 
 data %>% select(which(is.na(data)))
 
