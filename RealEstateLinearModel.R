@@ -12,16 +12,14 @@ data.train$data  <- 'train'
 data.test$data <- 'test'
 dataold <- rbind(data.train,data.test)
 
-pairs(data[,c("Price","Rooms")])
 
-View(dataold)
-summary(data)
 #missing data
 
 p <- function(x){
   sum(is.na(x))/length(x)*100
 }
 
+cor(data.train$Price,data.train$Distance)
 
 apply(data,2,p)
 md.pattern(data)
@@ -31,6 +29,7 @@ impute <- mice(dataold[,10:17], m = 3, seed = 123)
 p2 <- complete(impute, 1)
 p1 <- dataold[,1:9]
 data <- cbind(p1,p2)
+data$BLog  <-   log(data$BuildingArea)
 head(data)
 md.pattern(data)
 
@@ -48,9 +47,11 @@ data <- CreateDummies(data ,"CouncilArea",19)
 
 
 
-
+View(data)
 data <- data %>%
   select(-SellerG)
+
+data$Price <- log(data$Price)
 
 for(col in names(data)){
   
@@ -60,6 +61,7 @@ for(col in names(data)){
   }
   
 }
+
 
 
 data_train=data %>% filter(data=='train') %>% select(-data)
@@ -73,30 +75,33 @@ set.seed(2)
 s=sample(1:nrow(data_train),0.7*nrow(data_train))
 data_train1=data_train[s,]
 data_train2=data_train[-s,]
+View(data_train1)
+fit=lm(Price~.,data=data_train1)
 
-fitfull=lm(Price~.,data=data_train1)
-summary(fit)
+
 sort(vif(fit),decreasing = T)[1:3]
-fit=lm(Price~.-Method_S-CouncilArea_Other-Postcode_3039-CouncilArea_Bayside-CouncilArea_Darebin-CouncilArea_Manningham-CouncilArea_HobsonsBay-Postcode_3070-Postcode_3182-Postcode_3042-Postcode_3084-Postcode_3079-CouncilArea_Brimbank-CouncilArea_Banyule-Postcode_3122-Postcode_3068-Postcode_3121,data=data_train1)
+fit=lm(Price~.-Method_S-CouncilArea_Other-Rooms,data=data_train1)
 
 
 fit=step(fit)
+formula(fit)
 plot(fit,which=1)
 plot(fit,which=2)
 plot(fit,which=3)
 plot(fit,which=4)
 
 predicted=predict(fit,newdata=data_train2)
+cor(data_train2$Price,exp(predicted))
 
-RMSE=(predicted-data_train2$Price)**2 %>%
+RMSE=(exp(predicted)-exp(data_train2$Price))**2 %>%
   mean() %>%
   sqrt()
 RMSE
 212467/RMSE
 
-anova(fit,fitfull)
+
 predicted=predict(fit,newdata=data_test)
-write.csv(predicted,'dong_xiaoyuan.csv',row.names = F)
+write.csv(exp(predicted),'dong_xiaoyuan2.csv',row.names = F)
 
 data %>% select(which(is.na(data)))
 
