@@ -19,7 +19,19 @@ p <- function(x){
   sum(is.na(x))/length(x)*100
 }
 
-cor(data.train$Price,data.train$Distance)
+y <- data_train %>% select(Price,Rooms,BuildingArea) %>%
+ggplot(aes(BuildingArea,Price, color = BuildingArea)) + 
+  geom_point(alpha = 0.5)
+
+x <- data_train %>% group_by(BuildingArea) %>% summarise(nn=n()) %>% arrange(desc(nn)) %>% ungroup
+View(x)
+x %>% 
+  ggplot(aes(nn,BuildingArea, color = BuildingArea)) + 
+  geom_point(alpha = 0.5)
+
+
+x %>% filter(BuildingArea > 100) 
+nrow(x)
 
 apply(data,2,p)
 md.pattern(data)
@@ -29,7 +41,7 @@ impute <- mice(dataold[,10:17], m = 3, seed = 123)
 p2 <- complete(impute, 1)
 p1 <- dataold[,1:9]
 data <- cbind(p1,p2)
-data$BLog  <-   log(data$BuildingArea)
+
 head(data)
 md.pattern(data)
 
@@ -43,15 +55,10 @@ data <- CreateDummies(data ,"Method",4)
 data$CouncilArea <- replace(data$CouncilArea,data$CouncilArea=="","Other")
 data <- CreateDummies(data ,"CouncilArea",19)
 
-
-
-
-
-View(data)
 data <- data %>%
   select(-SellerG)
 
-data$Price <- log(data$Price)
+data$Price <- exp(data$Price)
 
 for(col in names(data)){
   
@@ -75,7 +82,7 @@ set.seed(2)
 s=sample(1:nrow(data_train),0.7*nrow(data_train))
 data_train1=data_train[s,]
 data_train2=data_train[-s,]
-View(data_train1)
+summary(fit)
 fit=lm(Price~.,data=data_train1)
 
 

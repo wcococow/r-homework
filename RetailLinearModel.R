@@ -37,6 +37,33 @@ summary(data)
 str(data)
 data$population[which(data$Areaname=="Franklin County, ME" & data$countytownname == "Madrid town")] = 173
 data$population[which(data$Areaname=="Washington County, ME" & data$countytownname == "Centerville town")] = 26
+
+
+x <- data.train %>%  
+  mutate(price=sales0+sales1+sales2+sales3+sales4)
+sum(x$price)
+nrow(table(data.train$Areaname))
+
+
+outlier_search <- function(fnlwgt,rang){
+  s <- quantile(fnlwgt,c(0.25,0.75))
+  inq <- IQR(fnlwgt)
+  low <- s[1]-rang*inq
+  high <- s[2]+rang*inq
+  print("Outlier Limits For fnlwgt are")
+  print(paste(low,high))
+  s <- fnlwgt[fnlwgt >high | fnlwgt < low]
+  print("Number of outliers according to these limits for fnlwgt:")
+  print(length(s))
+  
+}
+x <- x  %>% group_by(store_Type) %>% summarise(vp=var(price)) 
+  
+
+outlier_search(x$price,1.5)
+
+
+
 #countyname storecode Areaname countytownname state_alpha store_Type
 data <- data %>% select(-countyname, -storecode, -Areaname, -countytownname)
 data <- CreateDummies(data ,"store_Type",3)

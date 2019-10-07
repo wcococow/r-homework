@@ -150,24 +150,8 @@ ld.rf.final <- randomForest(Price~.,
                          nodesize=best_params$nodesize,
                          data=data_train1)
 
-dim(data)
-fit <- cforest(Price~.,data=data_train,controls=cforest_unbiased(ntree = 200, mtry = 20))
-cforestStats(fit)
-rev(sort(varimp(fit)))
 
-
-
-
-
-
-
-
-
-
-
-print(ld.rf.final)
-attributes(ld.rf.final)
-
+str(data_train1)
 test.pred=predict(ld.rf.final,newdata = data_train2)
 
 RMSE=(test.pred-data_train2$Price)**2 %>%
