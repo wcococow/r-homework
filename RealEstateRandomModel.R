@@ -175,7 +175,8 @@ ld.rf.final <- randomForest(Price~.,
 plot(ld.rf.final)
 varImpPlot(ld.rf.final)
 print(ld.rf.final)
-
+hist(treesize(ld.rf.final),
+     col = "green")
 
 test.pred=predict(ld.rf.final,newdata = data_train2)
 
