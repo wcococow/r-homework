@@ -4,10 +4,11 @@ library(tidyverse)
 library(tidyr)
 library(car)
 library(mice)
-library(caret)
+library(timeDate)
 library('ggthemes')
 library('corrplot')
 library('gridExtra')
+library(randomForest)
 #read csv file
 setwd("D:/edvancer/R project/Real Estate")
 data.train <- read.csv("housing_train.csv", stringsAsFactors = F)
@@ -96,15 +97,16 @@ for(x in names(skew))
 
 data <- data %>% select(-Suburb,-Address)
 
-data <- CreateDummies(data ,"Postcode",93)
-data <- CreateDummies(data ,"Type",2)
-data <- CreateDummies(data ,"Method",4)
+table(data$SellerG)
 
-data$CouncilArea <- replace(data$CouncilArea,data$CouncilArea=="","Other")
-data <- CreateDummies(data ,"CouncilArea",19)
 
+str(data)
 data <- data %>%
   select(-SellerG)
+
+data$Type <- factor(data$Type)
+data$Method <- factor(data$Method)
+data$CouncilArea <- factor(data$CouncilArea)
 
 data_train=data %>% filter(data=='train') %>% select(-data)
 data_test=data %>% filter(data=='test') %>% select(-data,-Price)
@@ -120,28 +122,36 @@ s=sample(1:nrow(data_train),0.7*nrow(data_train))
 data_train1=data_train[s,]
 data_train2=data_train[-s,]
 
-fit=lm(Price~.-CouncilArea_Other,data=data_train1)
-summary(fit)
-sort(vif(fit),decreasing = T)[1:3]
-fit=lm(Price~.-Method_S-CouncilArea_Other-CouncilArea_GlenEira-CouncilArea_Brimbank-Rooms-CouncilArea_Moreland,data=data_train1)
-fit=step(fit)
-formula(fit)
+## Final model with obtained best parameters
+best_params<- data.frame(mtry=10,
+                         ntree=200,
+                         maxnodes=50,
+                         nodesize=10)
+ld.rf.final <- randomForest(Price~.,
+                            mtry=best_params$mtry,
+                            ntree=best_params$ntree,
+                            maxnodes=best_params$maxnodes,
+                            nodesize=best_params$nodesize,
+                            data=data_train1)
 
-plot(fit,which=1)
-plot(fit,which=2)
-plot(fit,which=3)
-plot(fit,which=4)
 
-predicted=predict(fit,newdata=data_train2)
+importance <- importance(ld.rf.final)
+varImpPlot(ld.rf.final)
 
-RMSE=(exp(predicted)-exp(data_train2$Price))**2 %>%
+test.pred=predict(ld.rf.final,newdata = data_train2)
+
+RMSE=(exp(test.pred)-exp(data_train2$Price))**2 %>%
   mean() %>%
   sqrt()
 RMSE
 212467/RMSE
 
-predicted=predict(fit,newdata=data_test)
-write.csv(exp(predicted),'dong_xiaoyuan3.csv',row.names = F)
+test.pred=predict(ld.rf.final,newdata = data_test)
+write.csv(test.pred,"mysubmission.csv",row.names = F)
+
+
+
+
 
 CreateDummies=function(data,var,freq_cutoff=0){
   t=table(data[,var])

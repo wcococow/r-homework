@@ -7,28 +7,47 @@ library(cvTools)
 library(randomForest)
 library(party)
 library(caret)
+library(timeDate)
+#read csv file
 #read csv file
 setwd("D:/edvancer/R project/Real Estate")
 data.train <- read.csv("housing_train.csv", stringsAsFactors = F)
 data.test <- read.csv("housing_test.csv", stringsAsFactors = F)
-data.test$Price <- 0
+#remove duplicated rows
+cat("The number of duplicated rows are", nrow(data.train) - nrow(unique(data.train)))
+data.train <- data.train %>% distinct
+#remove outliers
+data.train <- data.train %>% filter(data.train$BuildingArea<1000)
+
 data.train$data  <- 'train'
+data.test$Price <- 1
 data.test$data <- 'test'
-dataold <- rbind(data.train,data.test)
+data <- rbind(data.train,data.test)
 #impute
-impute <- mice(dataold[,10:17], m = 3, seed = 123) 
+impute <- mice(data[,10:17], m = 3, seed = 123) 
 
 p2 <- complete(impute, 1)
-p1 <- dataold[,1:9]
+p1 <- data[,1:9]
 data <- cbind(p1,p2)
-str(data)
+
+numeric_var <- names(data)[which(sapply(data, is.numeric))]
+skew <- sapply(numeric_var,function(x){skewness(data[[x]],na.rm = T)})
+skew <- skew[skew > 0.75]
+
+for(x in names(skew)) 
+{
+  data[[x]] <- log(data[[x]] + 1)
+}
+
+#drop character variables
 data <- data %>% select(-Suburb,-Address,-SellerG)
-data$Postcode <- as.character(data$Postcode)
-data <- CreateDummies(data ,"Postcode",93)
-data <- CreateDummies(data ,"Type",2)
-data <- CreateDummies(data ,"Method",4)
-data$CouncilArea <- replace(data$CouncilArea,data$CouncilArea=="","Other")
-data <- CreateDummies(data ,"CouncilArea",19)
+#transfer to factors
+data$Type <- factor(data$Type)
+data$Method <- factor(data$Method)
+data$CouncilArea <- replace(data$CouncilArea, data$CouncilArea == "", "Other")
+data$CouncilArea <- factor(data$CouncilArea)
+
+
 
 
 CreateDummies=function(data,var,freq_cutoff=0){
@@ -53,6 +72,7 @@ CreateDummies=function(data,var,freq_cutoff=0){
 }
 
 
+str(data)
 data_train=data %>% filter(data=='train') %>% select(-data)
 data_test=data %>% filter(data=='test') %>% select(-data,-Price)
 
@@ -136,12 +156,14 @@ for(i in 1:num_trials){
 
 
 # myerror=1.870957
-best_params<- data.frame(mtry=20,
+best_params<- data.frame(mtry=10,
                        ntree=200,
                        maxnodes=50,
                        nodesize=10)
 
 ## Final model with obtained best parameters
+
+View(data_train1)
 
 ld.rf.final <- randomForest(Price~.,
                          mtry=best_params$mtry,
@@ -150,11 +172,14 @@ ld.rf.final <- randomForest(Price~.,
                          nodesize=best_params$nodesize,
                          data=data_train1)
 
+plot(ld.rf.final)
+varImpPlot(ld.rf.final)
+print(ld.rf.final)
 
-str(data_train1)
+
 test.pred=predict(ld.rf.final,newdata = data_train2)
 
-RMSE=(test.pred-data_train2$Price)**2 %>%
+RMSE=(exp(test.pred)-exp(data_train2$Price))**2 %>%
   mean() %>%
   sqrt()
 RMSE
@@ -162,7 +187,7 @@ RMSE
 
 
 test.pred=predict(ld.rf.final,newdata = data_test)
-write.csv(test.pred,"mysubmission.csv",row.names = F)
+write.csv(exp(test.pred),"mysubmissiondong.csv",row.names = F)
 
 
 
