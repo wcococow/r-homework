@@ -5,6 +5,7 @@ library(car)
 library(mice)
 library(gbm)
 library(cvTools)
+library(timeDate)
 
 #read csv file
 setwd("D:/edvancer/R project/Real Estate")
@@ -78,7 +79,11 @@ data_test=data %>% filter(data=='test') %>% select(-data,-Price)
 any(is.na(data_train))
 any(is.na(data_test))
 
-
+#modeling
+set.seed(2)
+s=sample(1:nrow(data_train),0.7*nrow(data_train))
+data_train1=data_train[s,]
+data_train2=data_train[-s,]
 
 ## -----------------------------------------------------
 
@@ -112,12 +117,12 @@ for(i in 1:num_trials){
   print(paste0('starting iteration:',i))
   # uncomment the line above to keep track of progress
   params=my_params[i,]
-  str(data_train1)
+ 
   k=cvTuning(gbm,Price~.,
              data =data_train1,
              tuning =params,
              args = list(distribution="gaussian"),
-             folds = cvFolds(nrow(bs), K=10, type = "random"),
+             folds = cvFolds(nrow(data_train1), K=10, type = "random"),
              seed =2,
              predictArgs = list(n.trees=params$n.trees)
   )
@@ -137,11 +142,11 @@ for(i in 1:num_trials){
 }
 
 ## ----these are the values from a previous run--------------------------------------------------------------
-myerror=52.29379
-best_params=data.frame(interaction.depth=6,
-                       n.trees=500,
+myerror=20.84
+best_params=data.frame(interaction.depth=2,
+                       n.trees=700,
                        shrinkage=0.1,
-                       n.minobsnode=10)
+                       n.minobsnode=5)
 
 ## ------------------------------------------------------------------------
 myerror
@@ -150,7 +155,7 @@ myerror
 best_params
 
 ## ------------------------------------------------------------------------
-bs.gbm.final=gbm(cnt~.,data=data_train1,
+bs.gbm.final=gbm(Price~.-CouncilArea_Other,data=data_train1,
                  n.trees = best_params$n.trees,
                  n.minobsinnode = best_params$n.minobsnode,
                  shrinkage = best_params$shrinkage,
@@ -158,6 +163,19 @@ bs.gbm.final=gbm(cnt~.,data=data_train1,
                  distribution = "gaussian")
 
 
+predicted=predict(bs.gbm.final,newdata=data_train2,n.trees = best_params$n.trees)
+
+RMSE=(exp(predicted)-exp(data_train2$Price))**2 %>%
+  mean() %>%
+  sqrt()
+RMSE
+212467/RMSE
+
+
+
+test.pred=predict(bs.gbm.final,newdata=data_test,n.trees = best_params$n.trees)
+
+write.csv(exp(test.pred),"mysubmissionboost.csv",row.names = F)
 
 
 
